@@ -11,7 +11,7 @@ export interface Config {
 export const Config: Schema<Config> = Schema.object({
     rpsTime: Schema.number().default(10000).description('剪刀石头布游戏倒计时（毫秒）'),
     rpsWaitTime: Schema.number().default(600000).description('剪刀石头布等待对方同意的时间（毫秒）'),
-    rpsPreparedTime: Schema.number().default(3000).description('剪刀石头布游戏准备时间（毫秒）'),
+    rpsPreparedTime: Schema.number().default(5000).description('剪刀石头布游戏准备时间（毫秒）'),
 })
 
 export function apply(ctx: Context, config: Config) {
@@ -69,7 +69,7 @@ export function apply(ctx: Context, config: Config) {
                 session.send('对方没有回应，游戏取消');
             }, config.rpsWaitTime);
         }
-        return message + ' 如果同意的话请发送 同意'
+        return message + ' 如果同意的话请发送 同意剪刀石头布'
     })
 
     ctx.command('同意剪刀石头布').alias('同意石头剪刀布','石头剪刀布同意','剪刀石头布同意')
@@ -116,20 +116,21 @@ export function apply(ctx: Context, config: Config) {
                 session.content == '✂️' ||
                 session.content == 'scissors' ||
                 session.content == 'Scissors'
-            ) player.choice = '剪刀';
-            else if(session.content == '石头' ||
-                session.content == '✊' ||
-                session.content == '👊' ||
-                session.content == 'rock' ||
-                session.content == 'Rock'
-            ) player.choice = '石头';
-            else if(session.content == '布' ||
-                session.content == '🖐' ||
-                session.content == '✋' ||
-                session.content == 'paper' ||
-                session.content == 'Paper'
-            ) player.choice = '布';
-        if( player.choiceTime++ == 0)
+        ) player.choice = '剪刀';
+        else if(session.content == '石头' ||
+            session.content == '✊' ||
+            session.content == '👊' ||
+            session.content == 'rock' ||
+            session.content == 'Rock'
+        ) player.choice = '石头';
+        else if(session.content == '布' ||
+            session.content == '🖐' ||
+            session.content == '✋' ||
+            session.content == 'paper' ||
+            session.content == 'Paper'
+        ) player.choice = '布';
+        else return;
+        if(player.choiceTime++ == 0)
             session.send(player.name + ' 出 ' + player.choice);
         else 
             session.send(player.name + ' 改成了 ' + player.choice);
@@ -138,27 +139,29 @@ export function apply(ctx: Context, config: Config) {
     async function settle(session:Session) {
         const rps = rpsTemp[session.cid];
         let settleMessage = '';
-        if(rps.player[0].choice == rps.player[1].choice) {
+        if(rps.player[0].choice === rps.player[1].choice) {
             settleMessage = '平局';
         }
-        else if(rps.player[0].choice == '剪刀') {
-            if(rps.player[1].choice == '石头') settleMessage = rps.player[1].name + '获胜';
-            else if(rps.player[1].choice == '布') settleMessage = rps.player[0].name + '获胜';
+        else if(rps.player[0].choice === '剪刀') {
+            if(rps.player[1].choice === '石头') settleMessage = rps.player[1].name + '获胜';
+            else if(rps.player[1].choice === '布') settleMessage = rps.player[0].name + '获胜';
         }
-        else if(rps.player[0].choice == '石头') {
-            if(rps.player[1].choice == '剪刀') settleMessage = rps.player[0].name + '获胜';
-            else if(rps.player[1].choice == '布') settleMessage = rps.player[1].name + '获胜';
+        else if(rps.player[0].choice === '石头') {
+            if(rps.player[1].choice === '剪刀') settleMessage = rps.player[0].name + '获胜';
+            else if(rps.player[1].choice === '布') settleMessage = rps.player[1].name + '获胜';
         }
-        else if(rps.player[0].choice == '布') {
-            if(rps.player[1].choice == '剪刀') settleMessage = rps.player[1].name + '获胜';
+        else if(rps.player[0].choice === '布') {
+            if(rps.player[1].choice === '剪刀') settleMessage = rps.player[1].name + '获胜';
             else if(rps.player[1].choice == '石头') settleMessage = rps.player[0].name + '获胜';
         }
         else if(rps.player[0].choice === undefined) 
-            settleMessage = rps.player[0].name + '未出，' + rps.player[1].name + '获胜'; 
+            settleMessage = rps.player[1].name + '获胜'; 
         else if(rps.player[1].choice === undefined)
-            settleMessage = rps.player[1].name + '未出，' + rps.player[0].name + '获胜';
-        session.send(rps.player[0].name + ': ' + rps.player[0].choice + '\n' +
-                    rps.player[1].name + ': ' + rps.player[1].choice + '\n' + 
+            settleMessage = rps.player[0].name + '获胜';
+
+        session.send('游戏时间到~\n' +
+                    rps.player[0].name + '的结果是 ' + (rps.player[0].choice === undefined?'啥也没出': rps.player[0].choice) + '\n' +
+                    rps.player[1].name + '的结果是 ' + (rps.player[0].choice === undefined?'啥也没出': rps.player[0].choice) + '\n' + 
                     settleMessage + '~');
     }
 }
