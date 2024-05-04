@@ -1,0 +1,22 @@
+{
+  "name": "koishi-plugin-fei-r-p-s",
+  "description": "可以光明正大地慢出和改的剪刀石头布",
+  "version": "0.0.1",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "files": [
+    "lib",
+    "dist"
+  ],
+  "license": "MIT",
+  "scripts": {},
+  "keywords": [
+    "chatbot",
+    "koishi",
+    "plugin"
+  ],
+  "devDependencies": {},
+  "peerDependencies": {
+    "koishi": "^4.17.5"
+  }
+}
