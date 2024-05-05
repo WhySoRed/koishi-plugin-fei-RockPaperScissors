@@ -16,5 +16,13 @@
   ],
   "peerDependencies": {
     "koishi": "^4.17.5"
+  },
+  "koishi": {
+    "service": {
+      "required": [
+        "database",
+        "nickname"
+      ]
+    }
   }
 }

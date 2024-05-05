@@ -1,4 +1,11 @@
 import { Context, Schema, Session, h } from 'koishi'
+export const inject = {
+    required: [
+        'database',
+        'nickname',
+    ],
+}
+//import{} from 'koishi-plugin-fei-nickname';
 
 export const name = 'fei-r-p-s'
 
@@ -10,12 +17,12 @@ export interface Config {
 
 export const Config: Schema<Config> = Schema.object({
     rpsTime: Schema.number().default(10000).description('剪刀石头布游戏倒计时（毫秒）'),
-    rpsWaitTime: Schema.number().default(600000).description('剪刀石头布等待对方同意的时间（毫秒）'),
+    rpsWaitTime: Schema.number().default(60000).description('剪刀石头布等待对方同意的时间（毫秒）'),
     rpsPreparedTime: Schema.number().default(5000).description('剪刀石头布游戏准备时间（毫秒）'),
 })
 
 export function apply(ctx: Context, config: Config) {
-    const rpsTemp: {[key: string]: Rps} = {};
+    const rpsTemp: {[key: string]: RpsTemp} = {};
 
     class RpsPlayer {
         id:string;
@@ -27,7 +34,7 @@ export function apply(ctx: Context, config: Config) {
         }
     }
 
-    class Rps {
+    class RpsTemp {
         player :[RpsPlayer, RpsPlayer];
         gamePrepared:boolean = false;
         gameBegun:boolean = false;
@@ -39,6 +46,10 @@ export function apply(ctx: Context, config: Config) {
             this.player[0].name = player1Name;
         }
     }
+    
+    ctx.command('剪刀石头布测试').action(async ({ session }) => {
+        //return ctx.nickName.getNick(session);
+    })
 
     ctx.command('剪刀石头布').alias('石头剪刀布')
     .action(async ({ session }, message) => {
@@ -54,22 +65,22 @@ export function apply(ctx: Context, config: Config) {
                 const userInput = await session.prompt(30000);
                 if(userInput === null) {
                     return('你不出吗？那就算了吧...');
-                } else if(userInput === '剪刀' || userInput === '✂' || userInput === '✌' || userInput === '✂️' ||userInput === 'scissors' || userInput === 'Scissors')
+                } else if(userInput === '剪刀' ||userInput === 'scissors' || userInput === 'Scissors' || /[(🤞)(✌)(✌🏻)(✌🏼️)(✌🏽️)(✌🏾️)(✌🏿️)(🖖)(🖖🏻)(🖖🏼️)(🖖🏽️)(🖖🏾️)(🖖🏿️)(✁)(✂)(✃)(✄)(✀)(✂️)]/.test(userInput))
                     return('我出 石头~你输啦');
-                else if(userInput === '石头' || userInput === '✊' || userInput === '👊' || userInput === 'rock' || userInput === 'Rock')
+                else if(userInput === '石头' || userInput === 'rock' || userInput === 'Rock' || /[(👊)(👊🏻)(👊🏼️)(👊🏽️)(👊🏾️)(👊🏿️)(✊)(✊🏻)(✊🏼️)(✊🏽️)(✊🏾️)(✊🏿️)(🤜)(🤜🏻)(🤜🏼️)(🤜🏽️)(🤜🏾️)(🤜🏿️)(🤛)(🤛🏻)(🤛🏼️)(🤛🏽️)(🤛🏾️)(🤛🏿️)]/.test(userInput))
                     return('我出 布~你输啦');
-                else if(userInput === '布' || userInput === '🖐' || userInput === '✋' || userInput === 'paper' || userInput === 'Paper')
+                else if(userInput === '布' || userInput === 'paper' || userInput === 'Paper' || /[(🖐)(🖐🏻)(🖐🏼️)(🖐🏽️)(🖐🏾️)(🖐🏿️)(✋)(✋🏻)(✋🏼️)(✋🏽️)(✋🏾️)(✋🏿️)(🤚)(🤚🏻)(🤚🏼️)(🤚🏽️)(🤚🏾️)(🤚🏿️)(👋)(👋🏻)(👋🏼️)(👋🏽️)(👋🏾️)(👋🏿️)]/.test(userInput))
                     return('我出 剪刀~你输啦');
                 else return('你出什么？我不认识诶');
             }
-            const rps = rpsTemp[session.cid] = new Rps(session.event.user.id, h.select(message,'at')[0].attrs.id, session.event.user.name);
+            const rps = rpsTemp[session.cid] = new RpsTemp(session.event.user.id, h.select(message,'at')[0].attrs.id, session.event.user.name);
             rps.gamePrepared = true;
             rps.endTimeout = ctx.setTimeout(()=> {
                 delete rpsTemp[session.cid];
                 session.send('对方没有回应，游戏取消');
             }, config.rpsWaitTime);
         }
-        return message + ' 如果同意的话请发送 同意剪刀石头布'
+        return message + ' 要玩剪刀石头布吗？如果同意的话，请发送\n同意剪刀石头布'
     })
 
     ctx.command('同意剪刀石头布').alias('同意石头剪刀布','石头剪刀布同意','剪刀石头布同意')
@@ -81,7 +92,7 @@ export function apply(ctx: Context, config: Config) {
             ctx.setTimeout(()=> {
                 startGame(session);
             }, config.rpsPreparedTime)
-            return '游戏就要开始咯~请做好准备，' + config.rpsPreparedTime/1000 + '秒后游戏将会开始';
+            return h.at(rps.player[0].id) +' '+ h.at(rps.player[1].id) +' 游戏就要开始咯~请做好准备，' + config.rpsPreparedTime/1000 + '秒后游戏将会开始';
         }
     })
 
@@ -110,24 +121,20 @@ export function apply(ctx: Context, config: Config) {
     async function changeChoice(session:Session) {
         const rps = rpsTemp[session.cid];
         const player = rps.player[(rps.player[0].id === session.event.user.id ? 0 : 1)];
-        if(session.content == '剪刀' ||
-                session.content == '✂' ||
-                session.content == '✌' ||
-                session.content == '✂️' ||
-                session.content == 'scissors' ||
-                session.content == 'Scissors'
+        if(session.content === '剪刀' ||
+            session.content === 'scissors' ||
+            session.content === 'Scissors' ||
+            /[(🤞)(✌)(✌🏻)(✌🏼️)(✌🏽️)(✌🏾️)(✌🏿️)(🖖)(🖖🏻)(🖖🏼️)(🖖🏽️)(🖖🏾️)(🖖🏿️)(✁)(✂)(✃)(✄)(✀)(✂️)]/.test(session.content)
         ) player.choice = '剪刀';
         else if(session.content == '石头' ||
-            session.content == '✊' ||
-            session.content == '👊' ||
             session.content == 'rock' ||
-            session.content == 'Rock'
+            session.content == 'Rock' ||
+            /[(👊)(👊🏻)(👊🏼️)(👊🏽️)(👊🏾️)(👊🏿️)(✊)(✊🏻)(✊🏼️)(✊🏽️)(✊🏾️)(✊🏿️)(🤜)(🤜🏻)(🤜🏼️)(🤜🏽️)(🤜🏾️)(🤜🏿️)(🤛)(🤛🏻)(🤛🏼️)(🤛🏽️)(🤛🏾️)(🤛🏿️)]/.test(session.content)
         ) player.choice = '石头';
         else if(session.content == '布' ||
-            session.content == '🖐' ||
-            session.content == '✋' ||
             session.content == 'paper' ||
-            session.content == 'Paper'
+            session.content == 'Paper' ||
+            /[(🖐)(🖐🏻)(🖐🏼️)(🖐🏽️)(🖐🏾️)(🖐🏿️)(✋)(✋🏻)(✋🏼️)(✋🏽️)(✋🏾️)(✋🏿️)(🤚)(🤚🏻)(🤚🏼️)(🤚🏽️)(🤚🏾️)(🤚🏿️)(👋)(👋🏻)(👋🏼️)(👋🏽️)(👋🏾️)(👋🏿️)]/.test(session.content)
         ) player.choice = '布';
         else return;
         if(player.choiceTime++ == 0)
