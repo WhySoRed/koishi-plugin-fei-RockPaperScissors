@@ -1,4 +1,4 @@
-import { Context, Schema, Session, h } from 'koishi'
+import { Context, Schema, Session, h, $ } from 'koishi'
 import {} from 'koishi-plugin-fei-nickname'
 const fs_1 = require('fs');
 const path_1 = require('path');
@@ -30,6 +30,7 @@ declare module 'koishi' {
 }
   
 export interface RPSWinCount {
+    cid: string;
     uid: string;
     loserId: string;
     loserName: string;
@@ -65,12 +66,13 @@ export function apply(ctx: Context, config: Config) {
     }
 
     ctx.model.extend('rpsWinCount', {
+        cid: { type: "string", nullable:false },
         uid: { type: "string", nullable:false },
         loserId: { type: "string", nullable:false },
         loserName: "string",
         count: { type: "unsigned", initial: 0}
     },{
-        primary: ['uid', 'loserId']
+        primary: ['cid', 'uid', 'loserId']
     })
 
     ctx.command('剪刀石头布').alias('石头剪刀布')
@@ -207,18 +209,36 @@ export function apply(ctx: Context, config: Config) {
                     rps.player[1].name + '的结果是 ' + (rps.player[1].choice === undefined?'啥也没出': rps.player[1].choice) + '\n' + 
                     (winer === undefined? '平局': (winer? rps.player[1].name + ' 赢了': rps.player[0].name + ' 赢了')) + '~');
         if (winer !== undefined) {
+            const cid = session.cid;
             const uid = session.platform + ':' + rps.player[+winer].id;
-            const count = (await ctx.database.get('rpsWinCount',{ uid, loserId: rps.player[+!winer].id }))[0]?.count || 0;
-            await ctx.database.upsert('rpsWinCount', [{ uid, loserId: rps.player[+!winer].id, loserName: rps.player[+!winer].name, count: count + 1 }]);
+            const count = (await ctx.database.get('rpsWinCount',{ cid, uid, loserId: rps.player[+!winer].id }))[0]?.count || 0;
+            await ctx.database.upsert('rpsWinCount', [{ cid, uid, loserId: rps.player[+!winer].id, loserName: rps.player[+!winer].name, count: count + 1 }]);
         }
     }
+
+    ctx.command('剪刀石头布测试').action( async ({ session }) => {
+        const uid = session.uid;
+        const loserIdList = await ctx.database.select('rpsWinCount')
+        .where({ uid })
+        .groupBy('loserId', { count: row => $.sum(row.count)})
+        .orderBy('count')
+        .limit(10)
+        .offset(0)
+        .execute();
+        console.log(loserIdList);
+    })
 
     ctx.command('剪刀石头布记录 [页数]').alias('石头剪刀布记录')
     .action(async ({ session }, page) => {
         const uid = session.uid;
         const offsetIndex = (page? 10 * (+page - 1): 0);
         const winRecord = await ctx.database.select('rpsWinCount')
-                                            .where( { uid } )
+                                            .where({ uid })
+                                            .groupBy('loserId', {
+                                                loserName: row => row.loserName,
+                                                count: row => $.sum(row.count)
+                                            })
+                                            .orderBy('count')
                                             .limit(10)
                                             .offset(offsetIndex)
                                             .execute();
@@ -227,14 +247,9 @@ export function apply(ctx: Context, config: Config) {
         }
         else {
             const winText = JSON.parse(await fs_1.readFileSync(path_1.join(__dirname,'/RpsShowText.json'))).winText;
-            const getNickGiven = async (recond:any) => {
-                if(nicknameOn) {
-                    return await ctx.nickname.getNickGiven(session, recond.loserId);
-                }
-                else return recond.loserName;
-            }
             return `你的剪刀石头布记录：\n` + await Promise.all(winRecord.map(async (record) => {
-                const [loser, count] = [await getNickGiven(record), record.count];
+                const loser = nicknameOn? await ctx.nickname.getNickGiven(session, record.loserId): record.loserName;
+                const count = record.count;
                 const randomWinText = winText[Math.floor(Math.random() * winText.length)];
                 return randomWinText.replace(/\${loser}/g, loser).replace(/\${count}/g, count) + '\n';
             }))
