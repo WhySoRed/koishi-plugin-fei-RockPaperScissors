@@ -1,0 +1,16 @@
+{
+	"_instructionText": "在查看胜利记录时的展示文字",
+	"_winText": "允许传入的参数包含 winer loser count",
+	"winText": [
+		"你打败了${loser}足足${count}次",
+		"你${count}次把${loser}打倒在地",
+		"你已经用手掌向${loser}的脸蛋儿致以${count}次问候",
+		"你邀请${loser}被大地妈妈亲吻了${count}次",
+		"你的脚不小心和${loser}的肚子亲密接触了${count}次",
+		"你手动帮${loser}晚安了${count}次",
+		"你对${loser}进行了${count}次充满爱的教育",
+		"你奖励了${loser}一共${count}次",
+		"你领导${loser}体验了${count}次光荣的失败",
+		"你给予了${loser}${count}次宝贵的教训"
+	]
+}
