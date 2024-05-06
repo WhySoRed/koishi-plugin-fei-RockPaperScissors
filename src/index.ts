@@ -102,12 +102,22 @@ export function apply(ctx: Context, config: Config) {
             const rps = (rpsTemp[session.cid] = new RpsTemp(session.event.user.id, h.select(message,'at')[0].attrs.id, (nicknameOn? (await ctx.nickname.getNick(session)) as string: session.event.user.name)));
             rps.gamePrepared = true;
             rps.endWait = ctx.on('message' , async ( session ) => {
-                if(h.select(session.content, 'text')[0].attrs.content !== '同意')
+                const content = h.select(session.content, 'text')[0].attrs.content
+                if( content !== '同意' && content !== '不同意' &&
+                    content !== '拒绝' && content !== 'no' && content !== '不要' &&
+                    content !== 'y' && content !== 'n' && content !== 'yes' && content !== 'No')
                     return;
                 if(session.event.user.id == rps.player[1].id) {
                     //取消超时的计时器和同意的监听
                     rps.endWait();
-                    rps.endTimeout(); 
+                    rps.endTimeout();
+                    if(content === '不同意' || content === '拒绝' ||
+                       content === 'no' || content === '不要' ||
+                       content === 'n' || content === 'No') {
+                        delete rpsTemp[session.cid];
+                        session.send('对方拒绝了...')
+                        return;
+                    }
                     //在准备时间结束后可以出
                     ctx.setTimeout(()=> {
                         startGame(session);
@@ -165,16 +175,25 @@ export function apply(ctx: Context, config: Config) {
         if(session.content === '剪刀' ||
             session.content === 'scissors' ||
             session.content === 'Scissors' ||
+            session.content === '剪子' ||
+            session.content === 'R' ||
+            session.content === 'r' ||
             /[(🤞)(✌)(✌🏻)(✌🏼️)(✌🏽️)(✌🏾️)(✌🏿️)(🖖)(🖖🏻)(🖖🏼️)(🖖🏽️)(🖖🏾️)(🖖🏿️)(✁)(✂)(✃)(✄)(✀)(✂️)]/.test(session.content)
         ) player.choice = '剪刀';
         else if(session.content == '石头' ||
             session.content == 'rock' ||
             session.content == 'Rock' ||
+            session.content == '石' ||
+            session.content == 'R' ||
+            session.content == 'r' ||
             /[(👊)(👊🏻)(👊🏼️)(👊🏽️)(👊🏾️)(👊🏿️)(✊)(✊🏻)(✊🏼️)(✊🏽️)(✊🏾️)(✊🏿️)(🤜)(🤜🏻)(🤜🏼️)(🤜🏽️)(🤜🏾️)(🤜🏿️)(🤛)(🤛🏻)(🤛🏼️)(🤛🏽️)(🤛🏾️)(🤛🏿️)]/.test(session.content)
         ) player.choice = '石头';
         else if(session.content == '布' ||
             session.content == 'paper' ||
             session.content == 'Paper' ||
+            session.content == '纸' ||
+            session.content == 'P' ||
+            session.content == 'p' ||
             /[(🖐)(🖐🏻)(🖐🏼️)(🖐🏽️)(🖐🏾️)(🖐🏿️)(✋)(✋🏻)(✋🏼️)(✋🏽️)(✋🏾️)(✋🏿️)(🤚)(🤚🏻)(🤚🏼️)(🤚🏽️)(🤚🏾️)(🤚🏿️)(👋)(👋🏻)(👋🏼️)(👋🏽️)(👋🏾️)(👋🏿️)]/.test(session.content)
         ) player.choice = '布';
         else return;
@@ -238,7 +257,7 @@ export function apply(ctx: Context, config: Config) {
                                                 loserName: row => row.loserName,
                                                 count: row => $.sum(row.count)
                                             })
-                                            .orderBy('count')
+                                            .orderBy('count', 'desc')
                                             .limit(10)
                                             .offset(offsetIndex)
                                             .execute();
@@ -247,12 +266,12 @@ export function apply(ctx: Context, config: Config) {
         }
         else {
             const winText = JSON.parse(await fs_1.readFileSync(path_1.join(__dirname,'/RpsShowText.json'))).winText;
-            return `你的剪刀石头布记录：\n` + await Promise.all(winRecord.map(async (record) => {
+            return `你的剪刀石头布胜利记录：\n=================\n` + (await Promise.all(winRecord.map(async (record) => {
                 const loser = nicknameOn? await ctx.nickname.getNickGiven(session, record.loserId): record.loserName;
                 const count = record.count;
                 const randomWinText = winText[Math.floor(Math.random() * winText.length)];
-                return randomWinText.replace(/\${loser}/g, loser).replace(/\${count}/g, count) + '\n';
-            }))
+                return randomWinText.replace(/\${loser}/g, loser).replace(/\${count}/g, count);
+            }))).join('\n');
         }
     })
 }
