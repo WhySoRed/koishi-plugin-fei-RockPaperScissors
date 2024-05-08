@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-fei-r-p-s",
   "description": "可以光明正大地慢出和改的剪刀石头布",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [

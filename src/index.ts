@@ -235,18 +235,6 @@ export function apply(ctx: Context, config: Config) {
         }
     }
 
-    ctx.command('剪刀石头布测试').action( async ({ session }) => {
-        const uid = session.uid;
-        const loserIdList = await ctx.database.select('rpsWinCount')
-        .where({ uid })
-        .groupBy('loserId', { count: row => $.sum(row.count)})
-        .orderBy('count')
-        .limit(10)
-        .offset(0)
-        .execute();
-        console.log(loserIdList);
-    })
-
     ctx.command('剪刀石头布记录 [页数]').alias('石头剪刀布记录')
     .action(async ({ session }, page) => {
         const uid = session.uid;
