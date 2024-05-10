@@ -101,7 +101,8 @@ export function apply(ctx: Context, config: Config) {
             }
             const rps = (rpsTemp[session.cid] = new RpsTemp(session.event.user.id, h.select(message,'at')[0].attrs.id, (nicknameOn? (await ctx.nickname.getNick(session)) as string: session.event.user.name)));
             rps.gamePrepared = true;
-            rps.endWait = ctx.on('message' , async ( session ) => {
+            rps.endWait = ctx.channel(session.event.channel.id)
+                             .on('message' , async ( session ) => {
                 const content = h.select(session.content, 'text')[0].attrs.content
                 if( content !== '同意' && content !== '不同意' &&
                     content !== '拒绝' && content !== 'no' && content !== '不要' &&
